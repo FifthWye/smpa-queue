@@ -67,7 +67,7 @@ const login = async (page, { username, password }, { inputs }) => {
 
   if ($acceptBtn) await $acceptBtn.click();
 
-  // console.log('Try to log in...');
+  console.log('Try to log in...');
 
   await page.type(S.inputs.username, username);
   await page.type(S.inputs.password, password);
@@ -76,7 +76,7 @@ const login = async (page, { username, password }, { inputs }) => {
     waitUntil: 'networkidle0',
   });
 
-  // console.log('Finaly logged in, getting rid of unneeded modal windows...');
+  console.log('Finaly logged in, getting rid of unneeded modal windows...');
 
   let isEnglishModeOn =
     (await page.$eval(inputs.languageSelect, (el) => el.getAttribute('aria-label'))) !== 'Switch Display Language';
@@ -134,7 +134,7 @@ const getListOfReceivers = async (page, { blocks }) => {
     waitUntil: 'networkidle0',
   });
 
-  // console.log('Scrolling and getting chats list...');
+  console.log('Scrolling and getting chats list...');
 
   let receivers = [];
   const scrollRange = await page.$eval(blocks.chatListVisibleArea, (el) => el.scrollHeight);
@@ -155,7 +155,7 @@ const getListOfReceivers = async (page, { blocks }) => {
     noNewReceiversFoundCounter = newReceivers.length === 0 ? noNewReceiversFoundCounter + 1 : 0;
 
     // if (newReceivers.length)
-    // console.log('Found new chats:', newReceivers.length);
+    console.log('Found new chats:', newReceivers.length);
 
     receivers = [...receivers, ...newReceivers];
     await page.waitForTimeout(2000);
@@ -256,26 +256,26 @@ const unsendAndResendMessage = async (page, receiver, text, timeout, { blocks, i
   await page.waitForTimeout(3000);
 
   try {
-    // console.log(`\nLooking at chat with ${receiver.username}`);
+    console.log(`\nLooking at chat with ${receiver.username}`);
     await page.waitForSelector(blocks.lastMessage);
     const isTheOnlyMessage = (await page.$$(blocks.messages)).length === 2;
     const lastMessageText = (await page.$eval(blocks.lastMessage, (el) => el.textContent)).trim();
     const lastMessageTextFound = text.find((messageText) => {
       const similarity = stringSimilarity.compareTwoStrings(formatText(messageText), formatText(lastMessageText));
       const isHigherThanNinety = Math.round(similarity.toFixed(2) * 100) >= 90;
-      // console.log('Message similarity in percents ', similarity.toFixed(2) * 100);
+      console.log('Message similarity in percents ', similarity.toFixed(2) * 100);
 
       return isHigherThanNinety;
     });
     const isLastMessageValid = lastMessageTextFound !== undefined;
     const isTimeoutPassed = await checkMessageTimeout(page, blocks.firstMessage, timeout);
-    // console.log(' Is message first to this contact:', isTheOnlyMessage);
-    // console.log(' Is needed text found:', isLastMessageValid);
-    // console.log(' Has enough time passed:', isTimeoutPassed);
+    console.log(' Is message first to this contact:', isTheOnlyMessage);
+    console.log(' Is needed text found:', isLastMessageValid);
+    console.log(' Has enough time passed:', isTimeoutPassed);
 
     if (isTheOnlyMessage && isLastMessageValid && isTimeoutPassed) {
-      // console.log(`${receiver.username} didn't get message for ${timeout}h:`);
-      // console.log('Found message, removing...');
+      console.log(`${receiver.username} didn't get message for ${timeout}h:`);
+      console.log('Found message, removing...');
       let unsendAttempts = 0;
       while ((await page.$(blocks.messages)) && unsendAttempts <= 6) {
         try {
@@ -298,36 +298,36 @@ const unsendAndResendMessage = async (page, receiver, text, timeout, { blocks, i
           await page.click(inputs.firstModalBtn);
           await page.waitForTimeout(5000);
         } catch (error) {
-          // console.log(`Got some problems while removing message : ${error}`, 'Trying again');
+          console.log(`Got some problems while removing message : ${error}`, 'Trying again');
           unsendAttempts = unsendAttempts + 1;
         }
       }
-      // console.log('Message removed');
-      // console.log('Sending message...');
+      console.log('Message removed');
+      console.log('Sending message...');
       if (unsendAttempts !== 6) {
         while ((await page.$(blocks.messages)) === null) {
           await sendMessage(page, SELECTORS, lastMessageText);
           await page.waitForTimeout(4000);
         }
-        // console.log(`New message sent to ${receiver.username}`);
+        console.log(`New message sent to ${receiver.username}`);
       }
     }
   } catch (error) {
-    // console.log('Something went wrong while opening chat: ', error);
+    console.log('Something went wrong while opening chat: ', error);
   }
 };
 
 const resendMessages = async (page, receivers, text, { blocks }) => {
-  // console.log(`Got ${receivers.length} chats`);
+  console.log(`Got ${receivers.length} chats`);
   await page.evaluate((selector) => (document.querySelector(selector).scrollTop = 0), blocks.chatsList);
 
-  // console.log('Just scrolled to the top of all chats, trying to resend all messages...');
+  console.log('Just scrolled to the top of all chats, trying to resend all messages...');
 
   for await (const receiver of receivers) {
     await unsendAndResendMessage(page, receiver, text, 3, SELECTORS);
   }
   await page.waitForTimeout(1000);
-  // console.log('All messages were resent!');
+  console.log('All messages were resent!');
 };
 
 const run = async ({ credentials, text }) => {
@@ -352,7 +352,7 @@ const run = async ({ credentials, text }) => {
     const receivers = await getListOfReceivers(page, SELECTORS);
     await resendMessages(page, receivers, text, SELECTORS);
 
-    // console.log(receivers, receivers.length);
+    console.log(receivers, receivers.length);
   } catch (error) {
     throw error;
   } finally {
