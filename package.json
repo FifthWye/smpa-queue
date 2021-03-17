@@ -1,0 +1,23 @@
+{
+  "name": "smpa",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app",
+    "dev": "node app",
+    "arena": "node cli/arena"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bull": "^3.20.1",
+    "bullmq": "^1.14.7",
+    "config": "^3.3.3",
+    "dotenv": "^8.2.0",
+    "mongoose": "^5.12.0",
+    "node-cron": "^3.0.0",
+    "puppeteer": "^7.0.1",
+    "string-similarity": "^4.0.4"
+  }
+}
