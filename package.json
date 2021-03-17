@@ -4,9 +4,7 @@
   "description": "",
   "main": "app.js",
   "scripts": {
-    "start": "node app",
-    "dev": "node app",
-    "arena": "node cli/arena"
+    "start": "node index"
   },
   "author": "",
   "license": "ISC",
