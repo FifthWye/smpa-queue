@@ -160,7 +160,7 @@ const getListOfReceivers = async (page, { blocks }, jobId) => {
     receivers = [...receivers, ...newReceivers];
     await page.waitForTimeout(2000);
 
-    console.log("Job id: ", jobId, " | ",'Summary receivers', receivers)
+    console.log("Job id: ", jobId, " | ",'Summary receivers', receivers.length)
     if (receivers.length >= 2500) break;
   }
 
