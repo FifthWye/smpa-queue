@@ -5,11 +5,11 @@ const resendMessages = require('./resendMessages');
 const worker = new Worker(
   'resender',
   async (job) => {
-    await resendMessages(job.data);
+    await resendMessages({ ...job.data, jobId: job.id });
   },
   {
     connection: redis,
-    concurrency: 5
+    concurrency: 5,
   }
 );
 

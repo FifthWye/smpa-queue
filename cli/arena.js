@@ -26,6 +26,6 @@ const arena = Arena(
 
 app.use('/', arena);
 
-app.listen(PORT, () => {
-  console.log(`app listening on port ${PORT}`);
+app.listen(process.env.PORT, () => {
+  console.log(`app listening on port ${process.env.PORT}`);
 });
