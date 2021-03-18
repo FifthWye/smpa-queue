@@ -28,6 +28,6 @@ worker.on('completed', (job) => console.log(`Completed job ${job.id} successfull
 worker.on('failed', (job, err) => console.log(`Failed job ${job.id} with ${err}`));
 
 console.log('Queue started at ', new Date());
-cron.schedule('12 20 * * *', async () => {
+cron.schedule('38 20 * * *', async () => {
   producer();
 });
