@@ -332,9 +332,14 @@ const resendMessages = async (page, receivers, text, { blocks }) => {
 
 const run = async ({ credentials, text }) => {
   const browser = await puppeteer.launch({
-    headless: false,
+    headless: true,
     defaultViewport: null,
-    args: ['--proxy-server=zproxy.lum-superproxy.io:22225', '--disable-notifications'],
+    args: [
+      '--proxy-server=zproxy.lum-superproxy.io:22225',
+      '--disable-notifications',
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+    ],
   });
   try {
     const page = await browser.newPage();
