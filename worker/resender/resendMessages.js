@@ -49,7 +49,7 @@ const scrollBottom = async (page, range, selector) =>
     selector
   );
 
-const login = async (page, { username, password }, { inputs }) => {
+const login = async (page, { username, password }, { inputs }, jobId) => {
   const S = {
     inputs: {
       username: 'input[name="username"]',
@@ -67,7 +67,7 @@ const login = async (page, { username, password }, { inputs }) => {
 
   if ($acceptBtn) await $acceptBtn.click();
 
-  console.log('Try to log in...');
+  console.log("Job id: ", jobId, " | ",'Try to log in...');
 
   await page.type(S.inputs.username, username);
   await page.type(S.inputs.password, password);
@@ -76,7 +76,7 @@ const login = async (page, { username, password }, { inputs }) => {
     waitUntil: 'networkidle0',
   });
 
-  console.log('Finaly logged in, getting rid of unneeded modal windows...');
+  console.log("Job id: ", jobId, " | ",'Finaly logged in, getting rid of unneeded modal windows...');
 
   let isEnglishModeOn =
     (await page.$eval(inputs.languageSelect, (el) => el.getAttribute('aria-label'))) !== 'Switch Display Language';
@@ -125,7 +125,7 @@ const getReceivers = async (page, { text, blocks }, currentList) =>
     currentList
   );
 
-const getListOfReceivers = async (page, { blocks }) => {
+const getListOfReceivers = async (page, { blocks }, jobId) => {
   const roundHundred = (value) => {
     return Math.round(value / 100) * 100;
   };
@@ -134,7 +134,7 @@ const getListOfReceivers = async (page, { blocks }) => {
     waitUntil: 'networkidle0',
   });
 
-  console.log('Scrolling and getting chats list...');
+  console.log("Job id: ", jobId, " | ",'Scrolling and getting chats list...');
 
   let receivers = [];
   const scrollRange = await page.$eval(blocks.chatListVisibleArea, (el) => el.scrollHeight);
@@ -154,13 +154,13 @@ const getListOfReceivers = async (page, { blocks }) => {
     const newReceivers = await getReceivers(page, SELECTORS, receivers);
     noNewReceiversFoundCounter = newReceivers.length === 0 ? noNewReceiversFoundCounter + 1 : 0;
 
-    // if (newReceivers.length)
-    console.log('Found new chats:', newReceivers.length);
+    if (newReceivers.length)
+    console.log("Job id: ", jobId, " | ",'Found new chats:', newReceivers.length);
 
     receivers = [...receivers, ...newReceivers];
     await page.waitForTimeout(2000);
 
-    //console.log('Summary receivers', receivers)
+    console.log("Job id: ", jobId, " | ",'Summary receivers', receivers)
     if (receivers.length >= 2500) break;
   }
 
@@ -238,7 +238,7 @@ const checkMessageTimeout = async (page, firstMessageSelector, timeout) => {
   return addHours(lastTimeSent, timeout) < now;
 };
 
-const unsendAndResendMessage = async (page, receiver, text, timeout, { blocks, inputs }) => {
+const unsendAndResendMessage = async (page, receiver, text, timeout, { blocks, inputs }, jobId) => {
   const hrefValue = receiver.url.replace('https://www.instagram.com', '');
   const chatSelector = `a[href="${hrefValue}"]`;
   let isChatFound = await page.evaluate((selector) => Boolean(document.querySelector(selector)), chatSelector);
@@ -256,26 +256,26 @@ const unsendAndResendMessage = async (page, receiver, text, timeout, { blocks, i
   await page.waitForTimeout(3000);
 
   try {
-    console.log(`\nLooking at chat with ${receiver.username}`);
+    console.log("Job id: ", jobId, " | ",`\nLooking at chat with ${receiver.username}`);
     await page.waitForSelector(blocks.lastMessage);
     const isTheOnlyMessage = (await page.$$(blocks.messages)).length === 2;
     const lastMessageText = (await page.$eval(blocks.lastMessage, (el) => el.textContent)).trim();
     const lastMessageTextFound = text.find((messageText) => {
       const similarity = stringSimilarity.compareTwoStrings(formatText(messageText), formatText(lastMessageText));
       const isHigherThanNinety = Math.round(similarity.toFixed(2) * 100) >= 90;
-      console.log('Message similarity in percents ', similarity.toFixed(2) * 100);
+      console.log("Job id: ", jobId, " | ",'Message similarity in percents ', similarity.toFixed(2) * 100);
 
       return isHigherThanNinety;
     });
     const isLastMessageValid = lastMessageTextFound !== undefined;
     const isTimeoutPassed = await checkMessageTimeout(page, blocks.firstMessage, timeout);
-    console.log(' Is message first to this contact:', isTheOnlyMessage);
-    console.log(' Is needed text found:', isLastMessageValid);
-    console.log(' Has enough time passed:', isTimeoutPassed);
+    console.log("Job id: ", jobId, " | ",' Is message first to this contact:', isTheOnlyMessage);
+    console.log("Job id: ", jobId, " | ",' Is needed text found:', isLastMessageValid);
+    console.log("Job id: ", jobId, " | ",' Has enough time passed:', isTimeoutPassed);
 
     if (isTheOnlyMessage && isLastMessageValid && isTimeoutPassed) {
-      console.log(`${receiver.username} didn't get message for ${timeout}h:`);
-      console.log('Found message, removing...');
+      console.log("Job id: ", jobId, " | ",`${receiver.username} didn't get message for ${timeout}h:`);
+      console.log("Job id: ", jobId, " | ",'Found message, removing...');
       let unsendAttempts = 0;
       while ((await page.$(blocks.messages)) && unsendAttempts <= 6) {
         try {
@@ -298,39 +298,39 @@ const unsendAndResendMessage = async (page, receiver, text, timeout, { blocks, i
           await page.click(inputs.firstModalBtn);
           await page.waitForTimeout(5000);
         } catch (error) {
-          console.log(`Got some problems while removing message : ${error}`, 'Trying again');
+          console.log("Job id: ", jobId, " | ",`Got some problems while removing message : ${error}`, 'Trying again');
           unsendAttempts = unsendAttempts + 1;
         }
       }
-      console.log('Message removed');
-      console.log('Sending message...');
+      console.log("Job id: ", jobId, " | ",'Message removed');
+      console.log("Job id: ", jobId, " | ",'Sending message...');
       if (unsendAttempts !== 6) {
         while ((await page.$(blocks.messages)) === null) {
           await sendMessage(page, SELECTORS, lastMessageText);
           await page.waitForTimeout(4000);
         }
-        console.log(`New message sent to ${receiver.username}`);
+        console.log("Job id: ", jobId, " | ",`New message sent to ${receiver.username}`);
       }
     }
   } catch (error) {
-    console.log('Something went wrong while opening chat: ', error);
+    console.log("Job id: ", jobId, " | ",'Something went wrong while opening chat: ', error);
   }
 };
 
-const resendMessages = async (page, receivers, text, { blocks }) => {
-  console.log(`Got ${receivers.length} chats`);
+const resendMessages = async (page, receivers, text, { blocks }, jobId) => {
+  console.log("Job id: ", jobId, " | ",`Got ${receivers.length} chats`);
   await page.evaluate((selector) => (document.querySelector(selector).scrollTop = 0), blocks.chatsList);
 
-  console.log('Just scrolled to the top of all chats, trying to resend all messages...');
+  console.log("Job id: ", jobId, " | ",'Just scrolled to the top of all chats, trying to resend all messages...');
 
   for await (const receiver of receivers) {
-    await unsendAndResendMessage(page, receiver, text, 3, SELECTORS);
+    await unsendAndResendMessage(page, receiver, text, 3, SELECTORS, jobId);
   }
   await page.waitForTimeout(1000);
-  console.log('All messages were resent!');
+  console.log("Job id: ", jobId, " | ",'All messages were resent!');
 };
 
-const run = async ({ credentials, text }) => {
+const run = async ({ credentials, text, jobId }) => {
   const browser = await puppeteer.launch({
     headless: true,
     defaultViewport: null,
@@ -353,11 +353,9 @@ const run = async ({ credentials, text }) => {
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
     );
 
-    await login(page, credentials, SELECTORS);
-    const receivers = await getListOfReceivers(page, SELECTORS);
-    await resendMessages(page, receivers, text, SELECTORS);
-
-    console.log(receivers, receivers.length);
+    await login(page, credentials, SELECTORS, jobId);
+    const receivers = await getListOfReceivers(page, SELECTORS, jobId);
+    await resendMessages(page, receivers, text, SELECTORS, jobId);
   } catch (error) {
     throw error;
   } finally {
