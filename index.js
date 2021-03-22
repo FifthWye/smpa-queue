@@ -17,9 +17,10 @@ const producer = async () => {
     useCreateIndex: true,
   });
 
-  BotModel.find({}, (err, bots) => {
-    bots.forEach(async ({ credentials, text }) => {
-      await addJob(resenderQueue, { credentials, text });
+  BotModel.find({ active: true }, (err, bots) => {
+    bots.forEach(async ({ credentials, config }) => {
+      const { resenderText } = config;
+      await addJob(resenderQueue, { credentials, text: resenderText });
     });
   });
 };
@@ -27,7 +28,8 @@ const producer = async () => {
 worker.on('completed', (job) => console.log(`Completed job ${job.id} successfully finished, all messages resent`));
 worker.on('failed', (job, err) => console.log(`Failed job ${job.id} with ${err}`));
 
-console.log('Queue started at ', new Date());
-cron.schedule('05 11 * * *', async () => {
+console.log('Queue started at ', new Date().toLocaleString());
+cron.schedule('33 17 * * *', () => {
+  console.log('Running producer');
   producer();
 });

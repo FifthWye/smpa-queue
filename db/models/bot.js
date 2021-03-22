@@ -29,6 +29,7 @@ const botSchema = new mongoose.Schema({
       ref: 'Service',
     },
   ],
+  active: { type: Boolean, required: true, default: true },
 });
 
 const BotModel = mongoose.model('Bot', botSchema);
