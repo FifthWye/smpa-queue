@@ -29,7 +29,7 @@ worker.on('completed', (job) => console.log(`Completed job ${job.id} successfull
 worker.on('failed', (job, err) => console.log(`Failed job ${job.id} with ${err}`));
 
 console.log('Queue started at ', new Date().toLocaleString());
-cron.schedule('04 10 * * *', () => {
+cron.schedule('25 09 * * *', () => {
   console.log('Running producer');
   producer();
 });
