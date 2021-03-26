@@ -175,7 +175,9 @@ const getListOfReceivers = async (page, { blocks }, jobId) => {
     receivers = [...receivers, ...newReceivers];
     await page.waitForTimeout(2000);
 
-    console.log('Job id: ', jobId, ' | ', 'Summary receivers', receivers.length);
+    noNewReceiversFoundCounter === 0
+      ? console.log('Job id: ', jobId, ' | ', 'Summary receivers', receivers.length)
+      : console.log('Job id: ', jobId, ' | Retrying to get recivers');
     if (receivers.length >= 2500) break;
   }
 
@@ -253,14 +255,7 @@ const checkMessageTimeout = async (page, firstMessageSelector, timeout) => {
   return addHours(lastTimeSent, timeout) < now;
 };
 
-const unsendAndResendMessage = async (
-  page,
-  receiver,
-  text,
-  timeout,
-  { blocks, inputs },
-  { jobId, messagesResent, invalidDialogues }
-) => {
+const unsendAndResendMessage = async (page, receiver, text, timeout, { blocks, inputs }, jobId) => {
   const hrefValue = receiver.url.replace('https://www.instagram.com', '');
   const chatSelector = `a[href="${hrefValue}"]`;
   let isChatFound = await page.evaluate((selector) => Boolean(document.querySelector(selector)), chatSelector);
@@ -331,13 +326,13 @@ const unsendAndResendMessage = async (
           await page.waitForTimeout(4000);
         }
         console.log('Job id: ', jobId, ' | ', `New message sent to ${receiver.username}`);
-        messagesResent++;
+        return true;
       }
-    } else {
-      invalidDialogues++;
     }
   } catch (error) {
     console.log('Job id: ', jobId, ' | ', 'Something went wrong while opening chat: ', error);
+  } finally {
+    return false;
   }
 };
 
@@ -349,16 +344,20 @@ const resendMessages = async (page, receivers, text, { blocks }, job) => {
   console.log('Job id: ', jobId, ' | ', 'Just scrolled to the top of all chats, trying to resend all messages...');
 
   let messagesResent = 0,
-    invalidDialogue = 0;
+    receiverIndex = 0;
 
-  for await (const [index, receiver] of receivers) {
-    await unsendAndResendMessage(page, receiver, text, 3, SELECTORS, { jobId, messagesResent, invalidDialogue });
-    job.updateProgress(percentage(index + 1, receivers.length, 0));
+  console.log(receivers);
+
+  for await (const receiver of receivers) {
+    const isMessageResent = await unsendAndResendMessage(page, receiver, text, 3, SELECTORS, jobId);
+    if (isMessageResent) messagesResent++;
+    job.updateProgress(percentage(receiverIndex + 1, receivers.length, 0));
+    receiverIndex++;
   }
   await page.waitForTimeout(1000);
   console.log('Job id: ', jobId, ' | ', 'All messages were resent!');
 
-  return { messagesResent, invalidDialogue };
+  return { messagesResent, invalidDialogue: receivers.length - messagesResent };
 };
 
 const run = async ({ credentials, text, job }) => {
@@ -386,7 +385,7 @@ const run = async ({ credentials, text, job }) => {
 
     await login(page, credentials, SELECTORS, job.id);
     await job.update({ ...job.data, loggedIn: true });
-    const receivers = await getListOfReceivers(page, SELECTORS, jobId);
+    const receivers = await getListOfReceivers(page, SELECTORS, job.id);
     await job.update({ ...job.data, reciversAmount: receivers.length });
     const stats = await resendMessages(page, receivers, text, SELECTORS, job);
     await job.update({ ...job.data, ...stats });
