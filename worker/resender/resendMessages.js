@@ -370,6 +370,7 @@ const run = async ({ credentials, text, job }) => {
       '--no-sandbox',
       '--disable-setuid-sandbox',
     ],
+    ignoreDefaultArgs: ['--disable-extensions'],
   });
   try {
     const page = await browser.newPage();
