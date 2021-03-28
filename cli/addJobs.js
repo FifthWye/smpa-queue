@@ -1,6 +1,6 @@
 const { resenderQueue, addJob } = require('../queue');
 const dotenv = require('dotenv');
-const BotModel = require('./db/models/bot');
+const BotModel = require('../db/models/bot');
 const mongoose = require('mongoose');
 
 dotenv.config({ path: './config/config.env' });

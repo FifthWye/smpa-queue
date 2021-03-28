@@ -64,11 +64,10 @@ const login = async (page, { username, password }, { inputs }, jobId) => {
     waitUntil: 'networkidle0',
   });
 
-  await page.waitForTimeout(2000);
-
   console.log('Job id: ', jobId, ' | ', 'Try to log in...');
 
   try {
+    await page.waitForSelector(S.inputs.username);
     await page.type(S.inputs.username, username);
     await page.type(S.inputs.password, password);
   } catch (error) {
@@ -388,7 +387,7 @@ const run = async ({ credentials, text, job }) => {
     await job.update({ ...job.data, loggedIn: true });
     const receivers = await getListOfReceivers(page, SELECTORS, job.id);
     await job.update({ ...job.data, reciversAmount: receivers.length });
-    if(receivers.length === 10) throw new Error("Dialogs load limit, couldn't get more than 10 receivers")
+    if (receivers.length === 10) throw new Error("Dialogs load limit, couldn't get more than 10 receivers");
     const stats = await resendMessages(page, receivers, text, SELECTORS, job);
     await job.update({ ...job.data, ...stats });
   } catch (error) {
