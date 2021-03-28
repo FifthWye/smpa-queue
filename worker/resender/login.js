@@ -1,4 +1,4 @@
-const login = async (page, { username, password }, { inputs }, jobId) => {
+const login = async (page, { username, password }, { inputs, blocks }, jobId) => {
   const S = {
     inputs: {
       username: 'input[name="username"]',
@@ -57,6 +57,7 @@ const login = async (page, { username, password }, { inputs }, jobId) => {
 
   if ($acceptBtn) await $acceptBtn.click();
 
+  const { userAvatar } = blocks;
   const userAvatar = await page.$(userAvatar);
 
   const cookies = userAvatar ? await page.cookies() : null;
