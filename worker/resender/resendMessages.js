@@ -388,6 +388,7 @@ const run = async ({ credentials, text, job }) => {
     await job.update({ ...job.data, loggedIn: true });
     const receivers = await getListOfReceivers(page, SELECTORS, job.id);
     await job.update({ ...job.data, reciversAmount: receivers.length });
+    if(receivers.length === 10) throw new Error("Dialogs load limit, couldn't get more than 10 receivers")
     const stats = await resendMessages(page, receivers, text, SELECTORS, job);
     await job.update({ ...job.data, ...stats });
   } catch (error) {
