@@ -58,9 +58,9 @@ const login = async (page, { username, password }, { inputs, blocks }, jobId) =>
   if ($acceptBtn) await $acceptBtn.click();
 
   const { userAvatar } = blocks;
-  const userAvatar = await page.$(userAvatar);
+  const userAvatarEl = await page.$(userAvatar);
 
-  const cookies = userAvatar ? await page.cookies() : null;
+  const cookies = userAvatarEl ? await page.cookies() : null;
 
   return cookies;
 };
