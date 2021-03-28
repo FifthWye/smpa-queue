@@ -29,6 +29,7 @@ const botSchema = new mongoose.Schema({
       ref: 'Service',
     },
   ],
+  sessionCookies: { type: String, default: '', trim: true },
   active: { type: Boolean, required: true, default: true },
 });
 

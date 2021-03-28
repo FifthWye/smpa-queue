@@ -1,37 +1,11 @@
 const puppeteer = require('puppeteer');
 const stringSimilarity = require('string-similarity');
 const dotenv = require('dotenv');
-const { percentage } = require('../../utils/number');
+const { percentage, roundHundred } = require('../../utils/number');
+const SELECTORS = require('./selectors');
+const login = require('./login');
 
 dotenv.config({ path: '../../config/config.env' });
-
-const SELECTORS = {
-  inputs: {
-    firstModalBtn: '[role="dialog"] button:first-child',
-    dontSaveBrowserBtn: '[role="main"] .cmbtv [type="button"]',
-    unsendBtn: '[aria-hidden="false"] > div:last-child > div:last-child > [type="button"]',
-    messageOptionsBtn: '[role="listbox"][tabindex="0"] > [type="button"]',
-    messageInput:
-      '[style="height: 100%; width: 100%; max-width: 935px;"] [style="height: 100%;"] > div:last-child > div:last-child> div:last-child textarea',
-    sendBtn: "//button[contains(text(), 'Send')]",
-    languageSelect: 'select[aria-label]',
-  },
-  blocks: {
-    direct: '[style="height: 100%;"] a[href^="/direct/"]',
-    chatsList: '[style="height: 100%; overflow: hidden auto;"]',
-    messages: '[style="height: 100%;"] [style="height: 100%; width: 100%;"] div [role="listbox"]',
-    modal: 'div[role="presentation"]',
-    chatListVisibleArea: '[style="height: 100%;"] > [style="height: 100%;"] > div',
-    firstMessage: '[style="height: 100%;"] [style="height: 100%; width: 100%;"] > div > div > div:first-child',
-    lastMessage:
-      '[style="height: 100%;"] [style="height: 100%; width: 100%;"] > div > div > div:last-child > [role="listbox"][tabindex="0"]',
-    lastChat: '[style="height: 100%;"] [style="height: 100%; overflow: hidden auto;"] > div> div:last-child',
-  },
-  text: {
-    username: 'div[aria-labelledby] div[id]:first-child',
-    notAllowedToSendMessages: `//span[contains(text(), " can't receive your message. They don't allow new message requests from everyone.")]`,
-  },
-};
 
 const emojiRegEx = /(?:[\u2700-\u27bf]|(?:\ud83c[\udde6-\uddff]){2}|[\ud800-\udbff][\udc00-\udfff]|[\u0023-\u0039]\ufe0f?\u20e3|\u3299|\u3297|\u303d|\u3030|\u24c2|\ud83c[\udd70-\udd71]|\ud83c[\udd7e-\udd7f]|\ud83c\udd8e|\ud83c[\udd91-\udd9a]|\ud83c[\udde6-\uddff]|\ud83c[\ude01-\ude02]|\ud83c\ude1a|\ud83c\ude2f|\ud83c[\ude32-\ude3a]|\ud83c[\ude50-\ude51]|\u203c|\u2049|[\u25aa-\u25ab]|\u25b6|\u25c0|[\u25fb-\u25fe]|\u00a9|\u00ae|\u2122|\u2139|\ud83c\udc04|[\u2600-\u26FF]|\u2b05|\u2b06|\u2b07|\u2b1b|\u2b1c|\u2b50|\u2b55|\u231a|\u231b|\u2328|\u23cf|[\u23e9-\u23f3]|[\u23f8-\u23fa]|\ud83c\udccf|\u2934|\u2935|[\u2190-\u21ff])/g;
 
@@ -49,66 +23,6 @@ const scrollBottom = async (page, range, selector) =>
     range,
     selector
   );
-
-const login = async (page, { username, password }, { inputs }, jobId) => {
-  const S = {
-    inputs: {
-      username: 'input[name="username"]',
-      password: 'input[name="password"]',
-      login: '[type="submit"]',
-      ...inputs,
-    },
-  };
-
-  await page.goto('https://www.instagram.com', {
-    waitUntil: 'networkidle0',
-  });
-
-  console.log('Job id: ', jobId, ' | ', 'Try to log in...');
-
-  try {
-    await page.waitForSelector(S.inputs.username);
-    await page.type(S.inputs.username, username);
-    await page.type(S.inputs.password, password);
-  } catch (error) {
-    console.log(
-      'Job id: ',
-      jobId,
-      ' | ',
-      error,
-      "Didn't find inputs to log in trying again with removeing modal if exists"
-    );
-    let $acceptBtn = await page.$(S.inputs.firstModalBtn);
-
-    if ($acceptBtn) await $acceptBtn.click();
-
-    await page.type(S.inputs.username, username);
-    await page.type(S.inputs.password, password);
-  }
-
-  await page.click(S.inputs.login);
-  await page.waitForNavigation({
-    waitUntil: 'networkidle0',
-  });
-
-  console.log('Job id: ', jobId, ' | ', 'Finaly logged in, getting rid of unneeded modal windows...');
-
-  let isEnglishModeOn =
-    (await page.$eval(inputs.languageSelect, (el) => el.getAttribute('aria-label'))) !== 'Switch Display Language';
-
-  while (isEnglishModeOn) {
-    await page.select(inputs.languageSelect, 'en');
-    await page.waitForNavigation({
-      waitUntil: 'networkidle0',
-    });
-    isEnglishModeOn =
-      (await page.$eval(inputs.languageSelect, (el) => el.getAttribute('aria-label'))) !== 'Switch Display Language';
-  }
-
-  $acceptBtn = await page.$(S.inputs.firstModalBtn);
-
-  if ($acceptBtn) await $acceptBtn.click();
-};
 
 const getReceivers = async (page, { text, blocks }, currentList) =>
   await page.evaluate(
@@ -141,10 +55,6 @@ const getReceivers = async (page, { text, blocks }, currentList) =>
   );
 
 const getListOfReceivers = async (page, { blocks }, jobId) => {
-  const roundHundred = (value) => {
-    return Math.round(value / 100) * 100;
-  };
-
   await page.goto('https://www.instagram.com/direct/inbox/', {
     waitUntil: 'networkidle0',
   });
@@ -163,7 +73,7 @@ const getListOfReceivers = async (page, { blocks }, jobId) => {
     await scrollBottom(page, distance, blocks.chatsList);
     totalScrollHeight += distance;
     if (totalScrollHeight >= scrollHeight) {
-      await page.waitForTimeout(1000);
+      await page.waitForTimeout(4000);
     }
 
     const newReceivers = await getReceivers(page, SELECTORS, receivers);
@@ -172,12 +82,12 @@ const getListOfReceivers = async (page, { blocks }, jobId) => {
     if (newReceivers.length) console.log('Job id: ', jobId, ' | ', 'Found new chats:', newReceivers.length);
 
     receivers = [...receivers, ...newReceivers];
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(3000);
 
     noNewReceiversFoundCounter === 0
       ? console.log('Job id: ', jobId, ' | ', 'Summary receivers', receivers.length)
       : console.log('Job id: ', jobId, ' | Retrying to get recivers');
-    if (receivers.length >= 2500) break;
+    if (receivers.length >= 1500) break;
   }
 
   return receivers;
@@ -373,21 +283,25 @@ const run = async ({ credentials, text, job }) => {
   });
   try {
     const page = await browser.newPage();
-
     await page.authenticate({
       username: process.env.LUM_ZONE,
       password: process.env.LUM_PASSWORD,
     });
-
     await page.setUserAgent(
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
     );
+    const { sessionCookies } = job;
+    const cookies = sessionCookies ? JSON.parse(sessionCookies) : await login(page, credentials, SELECTORS, job.id);
 
-    await login(page, credentials, SELECTORS, job.id);
+    if(cookies === null) throw new Error("Couldn't get session cookies");
+
+    await page.setCookie(...cookies);
     await job.update({ ...job.data, loggedIn: true });
     const receivers = await getListOfReceivers(page, SELECTORS, job.id);
-    await job.update({ ...job.data, reciversAmount: receivers.length });
+    await job.update({ ...job.data, receiversAmount: receivers.length });
+
     if (receivers.length === 10) throw new Error("Dialogs load limit, couldn't get more than 10 receivers");
+
     const stats = await resendMessages(page, receivers, text, SELECTORS, job);
     await job.update({ ...job.data, ...stats });
   } catch (error) {

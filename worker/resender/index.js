@@ -5,7 +5,7 @@ const resendMessages = require('./resendMessages');
 const worker = new Worker(
   'resender',
   async (job) => {
-    console.log("New job added: ",job)
+    console.log('New job started: ', job);
     await resendMessages({ ...job.data, job });
   },
   {
