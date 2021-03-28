@@ -1,3 +1,9 @@
+const BotModel = require('../../db/models/bot');
+const dotenv = require('dotenv');
+const mongoose = require('mongoose');
+
+dotenv.config({ path: './config/config.env' });
+
 const login = async (page, { username, password }, { inputs, blocks }, jobId) => {
   const S = {
     inputs: {
@@ -61,6 +67,21 @@ const login = async (page, { username, password }, { inputs, blocks }, jobId) =>
   const userAvatarEl = await page.$(userAvatar);
 
   const cookies = userAvatarEl ? await page.cookies() : null;
+
+  if (cookies !== null) {
+    const conn = await mongoose.connect(process.env.MONGO_URI, {
+      useUnifiedTopology: true,
+      useNewUrlParser: true,
+      useFindAndModify: false,
+      useCreateIndex: true,
+    });
+
+    const userRecord = await BotModel.findOne({
+      credentials,
+    });
+    userRecord.sessionCookies = cookies;
+    await userRecord.save();
+  }
 
   return cookies;
 };

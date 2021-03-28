@@ -293,9 +293,10 @@ const run = async ({ credentials, text, job }) => {
     const { sessionCookies } = job;
     const cookies = sessionCookies ? JSON.parse(sessionCookies) : await login(page, credentials, SELECTORS, job.id);
 
-    if(cookies === null) throw new Error("Couldn't get session cookies");
+    if (cookies === null) throw new Error("Couldn't get session cookies");
 
     await page.setCookie(...cookies);
+
     await job.update({ ...job.data, loggedIn: true });
     const receivers = await getListOfReceivers(page, SELECTORS, job.id);
     await job.update({ ...job.data, receiversAmount: receivers.length });
