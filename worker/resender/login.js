@@ -77,9 +77,9 @@ const login = async (page, { username, password }, { inputs, blocks }, jobId) =>
     });
 
     const userRecord = await BotModel.findOne({
-      credentials,
+      credentials: { username, password },
     });
-    userRecord.sessionCookies = cookies;
+    userRecord.sessionCookies = JSON.stringify(cookies);
     await userRecord.save();
   }
 
