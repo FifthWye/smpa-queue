@@ -268,19 +268,27 @@ const resendMessages = async (page, receivers, text, { blocks }, job) => {
 
   let messagesResent = 0,
     receiverIndex = 0;
+  const failedDialogs = [];
 
   console.log(receivers);
 
   for await (const receiver of receivers) {
     const isMessageResent = await unsendAndResendMessage(page, receiver, text, 3, SELECTORS, jobId);
-    if (isMessageResent) messagesResent++;
+
+    if (isMessageResent) {
+      messagesResent++;
+    } else{
+      failedDialogs.push(receiver.username)
+    }
+
     job.updateProgress(percentage(receiverIndex + 1, receivers.length, 0));
     receiverIndex++;
   }
+
   await page.waitForTimeout(1000);
   console.log('Job id: ', jobId, ' | ', 'All messages were resent!');
 
-  return { messagesResent, invalidDialogue: receivers.length - messagesResent };
+  return { messagesResent, invalidDialoguesAmount: failedDialogs.length, failedDialogs };
 };
 
 const run = async (job) => {
