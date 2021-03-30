@@ -293,7 +293,7 @@ const resendMessages = async (page, receivers, text, { blocks }, job) => {
 
 const run = async (job) => {
   const browser = await puppeteer.launch({
-    headless: false,
+    headless: true,
     defaultViewport: null,
     args: [
       '--proxy-server=zproxy.lum-superproxy.io:22225',
