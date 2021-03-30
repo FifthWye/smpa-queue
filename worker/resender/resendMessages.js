@@ -4,6 +4,7 @@ const dotenv = require('dotenv');
 const { percentage, roundHundred } = require('../../utils/number');
 const SELECTORS = require('./selectors');
 const login = require('./login');
+const iPhone = puppeteer.devices['iPhone 11'];
 
 dotenv.config({ path: '../../config/config.env' });
 
@@ -54,12 +55,16 @@ const getReceivers = async (page, { text, blocks }, currentList) =>
     currentList
   );
 
-const getListOfReceivers = async (page, { blocks }, jobId) => {
+const getListOfReceivers = async (page, { blocks, inputs }, jobId) => {
   await page.goto('https://www.instagram.com/direct/inbox/', {
     waitUntil: 'networkidle0',
+    timeout: 60000,
   });
 
   console.log('Job id: ', jobId, ' | ', 'Scrolling and getting chats list...');
+  const appNotNowBtn = await page.$x(inputs.appNotNow);
+
+  if (appNotNowBtn[0]) await appNotNowBtn[0].click();
 
   let receivers = [];
   const scrollRange = await page.$eval(blocks.chatListVisibleArea, (el) => el.scrollHeight);
@@ -68,9 +73,9 @@ const getListOfReceivers = async (page, { blocks }, jobId) => {
   let scrollHeight = await page.$eval(blocks.chatsList, (el) => el.scrollHeight);
   let noNewReceiversFoundCounter = 0;
 
-  while (totalScrollHeight <= scrollHeight || noNewReceiversFoundCounter !== 8) {
+  while (noNewReceiversFoundCounter <= 6) {
     scrollHeight = await page.$eval(blocks.chatsList, (el) => el.scrollHeight);
-    await scrollBottom(page, distance, blocks.chatsList);
+    await scrollBottom(page, distance * 2, blocks.chatsList);
     totalScrollHeight += distance;
     if (totalScrollHeight >= scrollHeight) {
       await page.waitForTimeout(4000);
@@ -79,13 +84,13 @@ const getListOfReceivers = async (page, { blocks }, jobId) => {
     const newReceivers = await getReceivers(page, SELECTORS, receivers);
     noNewReceiversFoundCounter = newReceivers.length === 0 ? noNewReceiversFoundCounter + 1 : 0;
 
-    if (newReceivers.length) console.log('Job id: ', jobId, ' | ', 'Found new chats:', newReceivers.length);
+    if (newReceivers.length) console.log('Job id: ', jobId, ' |', 'Found new chats:', newReceivers.length);
 
     receivers = [...receivers, ...newReceivers];
     await page.waitForTimeout(3000);
 
     noNewReceiversFoundCounter === 0
-      ? console.log('Job id: ', jobId, ' | ', 'Summary receivers', receivers.length)
+      ? console.log('Job id: ', jobId, ' |', 'Summary receivers', receivers.length)
       : console.log('Job id: ', jobId, ' | Retrying to get recivers');
     if (receivers.length >= 1500) break;
   }
@@ -179,64 +184,73 @@ const unsendAndResendMessage = async (page, receiver, text, timeout, { blocks, i
 
   try {
     const openChatArea = await page.$(chatSelector);
-    if (openChatArea) await openChatArea.click();
-    await page.waitForTimeout(3000);
-    console.log('Job id: ', jobId, ' | ', `\nLooking at chat with ${receiver.username}`);
-    await page.waitForSelector(blocks.lastMessage);
-    const isTheOnlyMessage = (await page.$$(blocks.messages)).length === 2;
-    const lastMessageText = (await page.$eval(blocks.lastMessage, (el) => el.textContent)).trim();
-    const lastMessageTextFound = text.find((messageText) => {
-      const similarity = stringSimilarity.compareTwoStrings(formatText(messageText), formatText(lastMessageText));
-      const isHigherThanNinety = Math.round(similarity.toFixed(2) * 100) >= 90;
-      console.log('Job id: ', jobId, ' | ', 'Message similarity in percents ', similarity.toFixed(2) * 100);
+    if (openChatArea) {
+      await openChatArea.click();
+      await page.waitForTimeout(3000);
+      console.log('Job id: ', jobId, ' | ', `\nLooking at chat with ${receiver.username}`);
+      await page.waitForSelector(blocks.lastMessage);
+      const isTheOnlyMessage = (await page.$$(blocks.messages)).length === 1;
+      const lastMessageText = (await page.$eval(blocks.lastMessage, (el) => el.textContent)).trim();
+      const lastMessageTextFound = text.find((messageText) => {
+        const similarity = stringSimilarity.compareTwoStrings(formatText(messageText), formatText(lastMessageText));
+        const isHigherThanNinety = Math.round(similarity.toFixed(2) * 100) >= 90;
+        console.log('Job id: ', jobId, ' | ', 'Message similarity in percents ', similarity.toFixed(2) * 100);
 
-      return isHigherThanNinety;
-    });
-    const isLastMessageValid = lastMessageTextFound !== undefined;
-    const isTimeoutPassed = await checkMessageTimeout(page, blocks.firstMessage, timeout);
-    console.log('Job id: ', jobId, ' | ', ' Is message first to this contact:', isTheOnlyMessage);
-    console.log('Job id: ', jobId, ' | ', ' Is needed text found:', isLastMessageValid);
-    console.log('Job id: ', jobId, ' | ', ' Has enough time passed:', isTimeoutPassed);
+        return isHigherThanNinety;
+      });
+      const isLastMessageValid = lastMessageTextFound !== undefined;
+      const isTimeoutPassed = await checkMessageTimeout(page, blocks.firstMessage, timeout);
+      console.log('Job id: ', jobId, ' | ', ' Is message first to this contact:', isTheOnlyMessage);
+      console.log('Job id: ', jobId, ' | ', ' Is needed text found:', isLastMessageValid);
+      console.log('Job id: ', jobId, ' | ', ' Has enough time passed:', isTimeoutPassed);
 
-    if (isTheOnlyMessage && isLastMessageValid && isTimeoutPassed) {
-      console.log('Job id: ', jobId, ' | ', `${receiver.username} didn't get message for ${timeout}h:`);
-      console.log('Job id: ', jobId, ' | ', 'Found message, removing...');
-      let unsendAttempts = 0;
-      while ((await page.$(blocks.messages)) && unsendAttempts <= 6) {
-        try {
-          await page.hover(blocks.lastMessage);
-          const messageOptionsBtnSelector = `${blocks.lastMessage} ${inputs.messageOptionsBtn}`;
-          await page.waitForSelector(messageOptionsBtnSelector, {
-            visible: true,
-            timeout: 4000,
-          });
-          await page.click(messageOptionsBtnSelector);
-          await page.waitForSelector(inputs.unsendBtn, {
-            visible: true,
-            timeout: 4000,
-          });
-          await page.click(inputs.unsendBtn);
-          await page.waitForSelector(inputs.firstModalBtn, {
-            visible: true,
-            timeout: 2000,
-          });
-          await page.click(inputs.firstModalBtn);
-          await page.waitForTimeout(5000);
-        } catch (error) {
-          console.log('Job id: ', jobId, ' | ', `Got some problems while removing message : ${error}`, 'Trying again');
-          unsendAttempts = unsendAttempts + 1;
+      if (isTheOnlyMessage && isLastMessageValid && isTimeoutPassed) {
+        console.log('Job id: ', jobId, ' | ', `${receiver.username} didn't get message for ${timeout}h:`);
+        console.log('Job id: ', jobId, ' | ', 'Found message, removing...');
+        let unsendAttempts = 0;
+        while ((await page.$(blocks.messages)) && unsendAttempts <= 6) {
+          try {
+            const messageBtnSelector = `${blocks.lastMessage} ${inputs.messageOptionsBtn}`;
+            await page.waitForSelector(messageBtnSelector, {
+              visible: true,
+              timeout: 4000,
+            });
+            await page.click(messageBtnSelector);
+            await page.keyboard.press('Enter', { delay: 1500 });
+            await page.waitForXPath(inputs.unsendBtn, {
+              visible: true,
+              timeout: 4000,
+            });
+            const unsendBtn = await page.$x(inputs.unsendBtn);
+            await unsendBtn[0].click();
+            await page.waitForTimeout(1000);
+          } catch (error) {
+            console.log(
+              'Job id: ',
+              jobId,
+              ' | ',
+              `Got some problems while removing message : ${error}`,
+              'Trying again'
+            );
+            unsendAttempts = unsendAttempts + 1;
+          }
+        }
+        console.log('Job id: ', jobId, ' | ', 'Message removed');
+        console.log('Job id: ', jobId, ' | ', 'Sending message...');
+        if (unsendAttempts !== 6) {
+          while ((await page.$(blocks.messages)) === null) {
+            await sendMessage(page, SELECTORS, lastMessageText);
+            await page.waitForTimeout(2000);
+          }
+          console.log('Job id: ', jobId, ' | ', `New message sent to ${receiver.username}`);
+          await page.click(inputs.backToDirects);
+          await page.waitForTimeout(1500);
+
+          return true;
         }
       }
-      console.log('Job id: ', jobId, ' | ', 'Message removed');
-      console.log('Job id: ', jobId, ' | ', 'Sending message...');
-      if (unsendAttempts !== 6) {
-        while ((await page.$(blocks.messages)) === null) {
-          await sendMessage(page, SELECTORS, lastMessageText);
-          await page.waitForTimeout(4000);
-        }
-        console.log('Job id: ', jobId, ' | ', `New message sent to ${receiver.username}`);
-        return true;
-      }
+      await page.click(inputs.backToDirects);
+      await page.waitForTimeout(1500);
     }
   } catch (error) {
     console.log('Job id: ', jobId, ' | ', 'Something went wrong while opening chat: ', error);
@@ -269,9 +283,9 @@ const resendMessages = async (page, receivers, text, { blocks }, job) => {
   return { messagesResent, invalidDialogue: receivers.length - messagesResent };
 };
 
-const run = async ({ credentials, text, job }) => {
+const run = async (job) => {
   const browser = await puppeteer.launch({
-    headless: true,
+    headless: false,
     defaultViewport: null,
     args: [
       '--proxy-server=zproxy.lum-superproxy.io:22225',
@@ -283,14 +297,12 @@ const run = async ({ credentials, text, job }) => {
   });
   try {
     const page = await browser.newPage();
+    await page.emulate(iPhone);
     await page.authenticate({
       username: process.env.LUM_ZONE,
       password: process.env.LUM_PASSWORD,
     });
-    await page.setUserAgent(
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
-    );
-    const { sessionCookies } = job;
+    const { sessionCookies, credentials } = job.data;
     const cookies = sessionCookies ? JSON.parse(sessionCookies) : await login(page, credentials, SELECTORS, job.id);
 
     if (cookies === null) throw new Error("Couldn't get session cookies");
@@ -302,6 +314,8 @@ const run = async ({ credentials, text, job }) => {
     await job.update({ ...job.data, receiversAmount: receivers.length });
 
     if (receivers.length === 10) throw new Error("Dialogs load limit, couldn't get more than 10 receivers");
+
+    const { text } = job.data;
 
     const stats = await resendMessages(page, receivers, text, SELECTORS, job);
     await job.update({ ...job.data, ...stats });

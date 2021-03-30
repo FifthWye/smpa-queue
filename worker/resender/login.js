@@ -9,18 +9,38 @@ const login = async (page, { username, password }, { inputs, blocks }, jobId) =>
     inputs: {
       username: 'input[name="username"]',
       password: 'input[name="password"]',
-      login: '[type="submit"]',
+      login: "//button[contains(text(), 'Log In')]",
+      submit: '[type="submit"]',
       ...inputs,
     },
+    blocks,
   };
 
   await page.goto('https://www.instagram.com', {
     waitUntil: 'networkidle0',
+    timeout: 60000,
   });
 
   console.log('Job id: ', jobId, ' | ', 'Try to log in...');
 
   try {
+    let isEnglishModeOn =
+      (await page.$eval(S.inputs.languageSelect, (el) => el.getAttribute('aria-label'))) !== 'Switch Display Language';
+
+    while (isEnglishModeOn) {
+      await page.select(S.inputs.languageSelect, 'en');
+      await page.waitForNavigation({
+        waitUntil: 'networkidle0',
+        timeout: 60000,
+      });
+      isEnglishModeOn =
+        (await page.$eval(inputs.languageSelect, (el) => el.getAttribute('aria-label'))) !== 'Switch Display Language';
+    }
+
+    const loginBtn = await page.$x(S.inputs.login);
+
+    if (loginBtn[0]) await loginBtn[0].click();
+
     await page.waitForSelector(S.inputs.username);
     await page.type(S.inputs.username, username);
     await page.type(S.inputs.password, password);
@@ -40,32 +60,21 @@ const login = async (page, { username, password }, { inputs, blocks }, jobId) =>
     await page.type(S.inputs.password, password);
   }
 
-  await page.click(S.inputs.login);
+  await page.click(S.inputs.submit);
+  console.log('Job id: ', jobId, ' | ', 'Finaly logged in, getting rid of unneeded modal windows...');
   await page.waitForNavigation({
     waitUntil: 'networkidle0',
+    timeout: 60000,
   });
-
-  console.log('Job id: ', jobId, ' | ', 'Finaly logged in, getting rid of unneeded modal windows...');
-
-  let isEnglishModeOn =
-    (await page.$eval(inputs.languageSelect, (el) => el.getAttribute('aria-label'))) !== 'Switch Display Language';
-
-  while (isEnglishModeOn) {
-    await page.select(inputs.languageSelect, 'en');
-    await page.waitForNavigation({
-      waitUntil: 'networkidle0',
-    });
-    isEnglishModeOn =
-      (await page.$eval(inputs.languageSelect, (el) => el.getAttribute('aria-label'))) !== 'Switch Display Language';
-  }
-
-  $acceptBtn = await page.$(S.inputs.firstModalBtn);
+  $acceptBtn = await page.$(S.inputs.dontSaveBrowserBtn);
 
   if ($acceptBtn) await $acceptBtn.click();
 
-  const { userAvatar } = blocks;
-  const userAvatarEl = await page.$(userAvatar);
-
+  await page.waitForNavigation({
+    waitUntil: 'networkidle0',
+    timeout: 60000,
+  });
+  const userAvatarEl = await page.$(S.blocks.userAvatar);
   const cookies = userAvatarEl ? await page.cookies() : null;
 
   if (cookies !== null) {

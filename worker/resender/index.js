@@ -6,7 +6,7 @@ const worker = new Worker(
   'resender',
   async (job) => {
     console.log('New job started: ', job);
-    await resendMessages({ ...job.data, job });
+    await resendMessages(job);
   },
   {
     connection: redis,

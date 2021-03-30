@@ -18,9 +18,9 @@ const producer = async () => {
   });
 
   BotModel.find({ active: true }, (err, bots) => {
-    bots.forEach(async ({ credentials, config }) => {
+    bots.forEach(async ({ credentials, config, sessionCookies }) => {
       const { resenderText } = config;
-      await addJob(resenderQueue, { credentials, text: resenderText });
+      await addJob(resenderQueue, { credentials, text: resenderText, sessionCookies });
     });
   });
 };
