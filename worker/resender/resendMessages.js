@@ -187,8 +187,14 @@ const unsendAndResendMessage = async (page, receiver, text, timeout, { blocks, i
     await openChatArea.click();
     if (openChatArea) {
       console.log('Job id: ', jobId, ' | ', `\nLooking at chat with ${receiver.username}`);
-      await Promise.race([page.waitForSelector(blocks.lastMessage), page.waitForSelector(blocks.invalidMessageType)]);
-      const isLastMessageElFound = Boolean(await page.$(blocks.lastMessage));
+      let isLastMessageElFound;
+      try {
+        await Promise.race([page.waitForSelector(blocks.lastMessage), page.waitForSelector(blocks.invalidMessageType)]);
+        isLastMessageElFound = Boolean(await page.$(blocks.lastMessage));
+      } catch (error) {
+        isLastMessageElFound = false;
+      }
+
       if (isLastMessageElFound) {
         const isTheOnlyMessage = (await page.$$(blocks.messages)).length === 1;
         const lastMessageText = (await page.$eval(blocks.lastMessage, (el) => el.textContent)).trim();
@@ -313,7 +319,7 @@ const resendMessages = async (page, receivers, text, { blocks }, job) => {
 
   for await (const receiver of receivers) {
     const stats = await unsendAndResendMessage(page, receiver, text, 3, SELECTORS, jobId);
-    runStatistics.push({...stats, username: receiver.username});
+    runStatistics.push({ ...stats, username: receiver.username });
     job.updateProgress(percentage(receiverIndex + 1, receivers.length, 0));
     receiverIndex++;
   }
@@ -322,9 +328,17 @@ const resendMessages = async (page, receivers, text, { blocks }, job) => {
   console.log('Job id: ', jobId, ' | ', 'All messages were resent!');
 
   const resent = runStatistics.filter((value) => value.messageResent);
-  const failed = runStatistics.filter((value) => value.messageResent === false && value.isTimeoutPassed && value.isChatOpened);
+  const failed = runStatistics.filter(
+    (value) => value.messageResent === false && value.isTimeoutPassed && value.isChatOpened
+  );
 
-  return { resent, resentDialoguesAmount: resent.length, invalidDialoguesAmount: failed.length, failed };
+  return {
+    resent,
+    resentDialoguesAmount: resent.length,
+    invalidDialoguesAmount: failed.length,
+    failed,
+    receivers: receivers.length,
+  };
 };
 
 const run = async (job) => {
