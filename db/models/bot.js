@@ -31,6 +31,13 @@ const botSchema = new mongoose.Schema({
   ],
   sessionCookies: { type: String, default: '', trim: true },
   active: { type: Boolean, required: true, default: true },
+  stats: {
+    receivers: { type: Number },
+    resent: { type: Array},
+    resentDialoguesAmount: { type: Number},
+    failed: { type: Array},
+    invalidDialoguesAmount: { type: Number},
+  },
 });
 
 const BotModel = mongoose.model('Bot', botSchema);

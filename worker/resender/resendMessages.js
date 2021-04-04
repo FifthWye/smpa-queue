@@ -175,7 +175,7 @@ const unsendAndResendMessage = async (page, receiver, text, timeout, { blocks, i
   let isChatFound = await page.evaluate((selector) => Boolean(document.querySelector(selector)), chatSelector);
   let searchForChatCounter = 0;
 
-  while (!isChatFound && searchForChatCounter !== 4) {
+  while (!isChatFound && searchForChatCounter !== 6) {
     await scrollBottom(page, 100, blocks.chatsList);
     await page.waitForTimeout(1000);
     isChatFound = await page.evaluate((selector) => Boolean(document.querySelector(selector)), chatSelector);
@@ -184,79 +184,121 @@ const unsendAndResendMessage = async (page, receiver, text, timeout, { blocks, i
 
   try {
     const openChatArea = await page.$(chatSelector);
+    await openChatArea.click();
     if (openChatArea) {
-      await openChatArea.click();
-      await page.waitForTimeout(3000);
       console.log('Job id: ', jobId, ' | ', `\nLooking at chat with ${receiver.username}`);
-      await page.waitForSelector(blocks.lastMessage);
-      const isTheOnlyMessage = (await page.$$(blocks.messages)).length === 1;
-      const lastMessageText = (await page.$eval(blocks.lastMessage, (el) => el.textContent)).trim();
-      const lastMessageTextFound = text.find((messageText) => {
-        const similarity = stringSimilarity.compareTwoStrings(formatText(messageText), formatText(lastMessageText));
-        const isHigherThanNinety = Math.round(similarity.toFixed(2) * 100) >= 90;
-        console.log('Job id: ', jobId, ' | ', 'Message similarity in percents ', similarity.toFixed(2) * 100);
+      await Promise.race([page.waitForSelector(blocks.lastMessage), page.waitForSelector(blocks.invalidMessageType)]);
+      const isLastMessageElFound = Boolean(await page.$(blocks.lastMessage));
+      if (isLastMessageElFound) {
+        const isTheOnlyMessage = (await page.$$(blocks.messages)).length === 1;
+        const lastMessageText = (await page.$eval(blocks.lastMessage, (el) => el.textContent)).trim();
+        const lastMessageTextFound = text.find((messageText) => {
+          const similarity = stringSimilarity.compareTwoStrings(formatText(messageText), formatText(lastMessageText));
+          const isHigherThanNinety = Math.round(similarity.toFixed(2) * 100) >= 90;
+          console.log('Job id: ', jobId, ' | ', 'Message similarity in percents ', similarity.toFixed(2) * 100);
 
-        return isHigherThanNinety;
-      });
-      const isLastMessageValid = lastMessageTextFound !== undefined;
-      const isTimeoutPassed = await checkMessageTimeout(page, blocks.firstMessage, timeout);
-      console.log('Job id: ', jobId, ' | ', ' Is message first to this contact:', isTheOnlyMessage);
-      console.log('Job id: ', jobId, ' | ', ' Is needed text found:', isLastMessageValid);
-      console.log('Job id: ', jobId, ' | ', ' Has enough time passed:', isTimeoutPassed);
+          return isHigherThanNinety;
+        });
+        const isLastMessageValid = lastMessageTextFound !== undefined;
+        const isTimeoutPassed = await checkMessageTimeout(page, blocks.firstMessage, timeout);
+        console.log('Job id: ', jobId, ' | ', ' Is message first to this contact:', isTheOnlyMessage);
+        console.log('Job id: ', jobId, ' | ', ' Is needed text found:', isLastMessageValid);
+        console.log('Job id: ', jobId, ' | ', ' Has enough time passed:', isTimeoutPassed);
+        const receiverReplied = Boolean(await page.$(blocks.messageWithAvatar));
+        const isLastMessageReply = Boolean(await page.$(blocks.messageWithAvatar));
 
-      if (isTheOnlyMessage && isLastMessageValid && isTimeoutPassed) {
-        console.log('Job id: ', jobId, ' | ', `${receiver.username} didn't get message for ${timeout}h:`);
-        console.log('Job id: ', jobId, ' | ', 'Found message, removing...');
-        let unsendAttempts = 0;
-        while ((await page.$(blocks.messages)) && unsendAttempts <= 6) {
-          try {
-            const messageBtnSelector = `${blocks.lastMessage} ${inputs.messageOptionsBtn}`;
-            await page.waitForSelector(messageBtnSelector, {
-              visible: true,
-              timeout: 4000,
-            });
-            await page.click(messageBtnSelector);
-            await page.keyboard.press('Enter', { delay: 1500 });
-            await page.waitForXPath(inputs.unsendBtn, {
-              visible: true,
-              timeout: 4000,
-            });
-            const unsendBtn = await page.$x(inputs.unsendBtn);
-            await unsendBtn[0].click();
-            await page.waitForTimeout(1000);
-          } catch (error) {
-            console.log(
-              'Job id: ',
-              jobId,
-              ' | ',
-              `Got some problems while removing message : ${error}`,
-              'Trying again'
-            );
-            unsendAttempts = unsendAttempts + 1;
+        if (isTheOnlyMessage && isLastMessageValid && isTimeoutPassed) {
+          console.log('Job id: ', jobId, ' | ', `${receiver.username} didn't get message for ${timeout}h:`);
+          console.log('Job id: ', jobId, ' | ', 'Found message, removing...');
+          let unsendAttempts = 0;
+          while ((await page.$(blocks.messages)) && unsendAttempts <= 6) {
+            try {
+              const messageBtnSelector = `${blocks.lastMessage} ${inputs.messageOptionsBtn}`;
+              await page.waitForSelector(messageBtnSelector, {
+                visible: true,
+                timeout: 4000,
+              });
+              await page.click(messageBtnSelector);
+              await page.keyboard.press('Enter', { delay: 1500 });
+              await page.waitForXPath(inputs.unsendBtn, {
+                visible: true,
+                timeout: 4000,
+              });
+              const unsendBtn = await page.$x(inputs.unsendBtn);
+              await unsendBtn[0].click();
+              await page.waitForTimeout(1000);
+            } catch (error) {
+              console.log(
+                'Job id: ',
+                jobId,
+                ' | ',
+                `Got some problems while removing message : ${error}`,
+                'Trying again'
+              );
+              unsendAttempts = unsendAttempts + 1;
+            }
+          }
+          console.log('Job id: ', jobId, ' | ', 'Message removed');
+          console.log('Job id: ', jobId, ' | ', 'Sending message...');
+          if (unsendAttempts !== 6) {
+            while ((await page.$(blocks.messages)) === null) {
+              await sendMessage(page, SELECTORS, lastMessageText);
+              await page.waitForTimeout(2000);
+            }
+            console.log('Job id: ', jobId, ' | ', `New message sent to ${receiver.username}`);
+            await page.click(inputs.backToDirects);
+            await page.waitForTimeout(1500);
+
+            return {
+              messageResent: true,
+              unsendAttempts,
+              searchForChatCounter,
+              isLastMessageValid,
+              isTheOnlyMessage,
+              lastMessageTextFound,
+              isTimeoutPassed,
+              isChatOpened: isLastMessageElFound,
+            };
           }
         }
-        console.log('Job id: ', jobId, ' | ', 'Message removed');
-        console.log('Job id: ', jobId, ' | ', 'Sending message...');
-        if (unsendAttempts !== 6) {
-          while ((await page.$(blocks.messages)) === null) {
-            await sendMessage(page, SELECTORS, lastMessageText);
-            await page.waitForTimeout(2000);
-          }
-          console.log('Job id: ', jobId, ' | ', `New message sent to ${receiver.username}`);
-          await page.click(inputs.backToDirects);
-          await page.waitForTimeout(1500);
+        await page.click(inputs.backToDirects);
+        await page.waitForTimeout(1500);
 
-          return true;
-        }
+        return {
+          messageResent: false,
+          isChatOpened: isLastMessageElFound,
+          searchForChatCounter,
+          isLastMessageValid,
+          isTheOnlyMessage,
+          lastMessageTextFound,
+          isTimeoutPassed,
+          receiverReplied,
+          isLastMessageReply,
+        };
       }
-      await page.click(inputs.backToDirects);
-      await page.waitForTimeout(1500);
     }
   } catch (error) {
     console.log('Job id: ', jobId, ' | ', 'Something went wrong while opening chat: ', error);
-  } finally {
-    return false;
+
+    return {
+      messageResent: false,
+      searchForChatCounter,
+      searchForChatCounter,
+      isChatFound,
+    };
   }
+
+  const chatListEl = await page.$(blocks.chatsList);
+  if (!chatListEl) {
+    await page.click(inputs.backToDirects);
+    await page.waitForTimeout(1000);
+  }
+
+  return {
+    messageResent: false,
+    isChatFound,
+    searchForChatCounter,
+  };
 };
 
 const resendMessages = async (page, receivers, text, { blocks }, job) => {
@@ -266,21 +308,12 @@ const resendMessages = async (page, receivers, text, { blocks }, job) => {
 
   console.log('Job id: ', jobId, ' | ', 'Just scrolled to the top of all chats, trying to resend all messages...');
 
-  let messagesResent = 0,
-    receiverIndex = 0;
-  const failedDialogs = [];
-
-  console.log(receivers);
+  let receiverIndex = 0;
+  const runStatistics = [];
 
   for await (const receiver of receivers) {
-    const isMessageResent = await unsendAndResendMessage(page, receiver, text, 3, SELECTORS, jobId);
-
-    if (isMessageResent) {
-      messagesResent++;
-    } else{
-      failedDialogs.push(receiver.username)
-    }
-
+    const stats = await unsendAndResendMessage(page, receiver, text, 3, SELECTORS, jobId);
+    runStatistics.push({...stats, username: receiver.username});
     job.updateProgress(percentage(receiverIndex + 1, receivers.length, 0));
     receiverIndex++;
   }
@@ -288,12 +321,15 @@ const resendMessages = async (page, receivers, text, { blocks }, job) => {
   await page.waitForTimeout(1000);
   console.log('Job id: ', jobId, ' | ', 'All messages were resent!');
 
-  return { messagesResent, invalidDialoguesAmount: failedDialogs.length, failedDialogs };
+  const resent = runStatistics.filter((value) => value.messageResent);
+  const failed = runStatistics.filter((value) => value.messageResent === false && value.isTimeoutPassed && value.isChatOpened);
+
+  return { resent, resentDialoguesAmount: resent.length, invalidDialoguesAmount: failed.length, failed };
 };
 
 const run = async (job) => {
   const browser = await puppeteer.launch({
-    headless: true,
+    headless: false,
     defaultViewport: null,
     args: [
       '--proxy-server=zproxy.lum-superproxy.io:22225',
@@ -320,13 +356,11 @@ const run = async (job) => {
     await job.update({ ...job.data, loggedIn: true });
     const receivers = await getListOfReceivers(page, SELECTORS, job.id);
     await job.update({ ...job.data, receiversAmount: receivers.length });
-
-    if (receivers.length === 10) throw new Error("Dialogs load limit, couldn't get more than 10 receivers");
-
     const { text } = job.data;
-
     const stats = await resendMessages(page, receivers, text, SELECTORS, job);
-    await job.update({ ...job.data, ...stats });
+    await job.update({ ...job.data, stats: { ...stats, receivers: receivers.length } });
+
+    return stats;
   } catch (error) {
     throw error;
   } finally {
