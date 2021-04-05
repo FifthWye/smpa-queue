@@ -184,10 +184,10 @@ const unsendAndResendMessage = async (page, receiver, text, timeout, { blocks, i
 
   try {
     const openChatArea = await page.$(chatSelector);
-    await openChatArea.click();
     if (openChatArea) {
+      await openChatArea.click();
       console.log('Job id: ', jobId, ' | ', `\nLooking at chat with ${receiver.username}`);
-      let isLastMessageElFound;
+      await page.waitForTimeout(1000);
       try {
         await Promise.race([page.waitForSelector(blocks.lastMessage), page.waitForSelector(blocks.invalidMessageType)]);
         isLastMessageElFound = Boolean(await page.$(blocks.lastMessage));
@@ -252,8 +252,11 @@ const unsendAndResendMessage = async (page, receiver, text, timeout, { blocks, i
               await page.waitForTimeout(2000);
             }
             console.log('Job id: ', jobId, ' | ', `New message sent to ${receiver.username}`);
-            await page.click(inputs.backToDirects);
-            await page.waitForTimeout(1500);
+
+            while (!(await page.$(blocks.chatsList))) {
+              await page.click(inputs.backToDirects);
+              await page.waitForTimeout(1500);
+            }
 
             return {
               messageResent: true,
@@ -267,8 +270,11 @@ const unsendAndResendMessage = async (page, receiver, text, timeout, { blocks, i
             };
           }
         }
-        await page.click(inputs.backToDirects);
-        await page.waitForTimeout(1500);
+
+        while (!(await page.$(blocks.chatsList))) {
+          await page.click(inputs.backToDirects);
+          await page.waitForTimeout(1500);
+        }
 
         return {
           messageResent: false,
@@ -294,10 +300,9 @@ const unsendAndResendMessage = async (page, receiver, text, timeout, { blocks, i
     };
   }
 
-  const chatListEl = await page.$(blocks.chatsList);
-  if (!chatListEl) {
+  while (!(await page.$(blocks.chatsList))) {
     await page.click(inputs.backToDirects);
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(1500);
   }
 
   return {
@@ -343,7 +348,7 @@ const resendMessages = async (page, receivers, text, { blocks }, job) => {
 
 const run = async (job) => {
   const browser = await puppeteer.launch({
-    headless: true,
+    headless: false,
     defaultViewport: null,
     args: [
       '--proxy-server=zproxy.lum-superproxy.io:22225',
@@ -378,7 +383,7 @@ const run = async (job) => {
   } catch (error) {
     throw error;
   } finally {
-    await browser.close();
+    // await browser.close();
   }
 };
 

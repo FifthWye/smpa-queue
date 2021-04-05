@@ -10,6 +10,7 @@ const SELECTORS = {
       languageSelect: 'select[aria-label]',
       appNotNow: "//button[contains(text(), 'Not Now')]",
       backToDirects: 'a[tabindex="0"]',
+      currentChatUserAvatar: '[style="width: 100%;"] > div > button',
     },
     blocks: {
       direct: '[style="height: 100%;"] a[href^="/direct/"]',
