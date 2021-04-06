@@ -380,6 +380,7 @@ const run = async (job) => {
 
     await job.update({ ...job.data, loggedIn: true });
     const receivers = await getListOfReceivers(page, SELECTORS, job.id);
+    if(receivers.length <= 300) throw new Error("Didn't get all receivers");
     await job.update({ ...job.data, receiversAmount: receivers.length });
     const { text } = job.data;
     const stats = await resendMessages(page, receivers, text, SELECTORS, job);
