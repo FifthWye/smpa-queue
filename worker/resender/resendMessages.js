@@ -170,6 +170,11 @@ const checkMessageTimeout = async (page, firstMessageSelector, timeout) => {
 };
 
 const unsendAndResendMessage = async (page, receiver, text, timeout, { blocks, inputs }, jobId) => {
+  while (!(await page.$(blocks.chatsList))) {
+    await page.click(inputs.backToDirects);
+    await page.waitForTimeout(1500);
+  }
+
   const hrefValue = receiver.url.replace('https://www.instagram.com', '');
   const chatSelector = `a[href="${hrefValue}"]`;
   let isChatFound = await page.evaluate((selector) => Boolean(document.querySelector(selector)), chatSelector);
@@ -244,9 +249,10 @@ const unsendAndResendMessage = async (page, receiver, text, timeout, { blocks, i
               unsendAttempts = unsendAttempts + 1;
             }
           }
-          console.log('Job id: ', jobId, ' | ', 'Message removed');
-          console.log('Job id: ', jobId, ' | ', 'Sending message...');
+
           if (unsendAttempts !== 6) {
+            console.log('Job id: ', jobId, ' | ', 'Message removed');
+            console.log('Job id: ', jobId, ' | ', 'Sending message...');
             while ((await page.$(blocks.messages)) === null) {
               await sendMessage(page, SELECTORS, lastMessageText);
               await page.waitForTimeout(2000);
@@ -383,7 +389,7 @@ const run = async (job) => {
   } catch (error) {
     throw error;
   } finally {
-    // await browser.close();
+    await browser.close();
   }
 };
 
