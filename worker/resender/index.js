@@ -31,7 +31,7 @@ const worker = new Worker(
   },
   {
     connection: redis,
-    concurrency: 15,
+    concurrency: 12,
   }
 );
 
