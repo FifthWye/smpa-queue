@@ -192,7 +192,7 @@ const unsendAndResendMessage = async (page, receiver, text, timeout, { blocks, i
     if (openChatArea) {
       await openChatArea.click();
       console.log('Job id: ', jobId, ' | ', `\nLooking at chat with ${receiver.username}`);
-      await page.waitForTimeout(1000);
+      await page.waitForTimeout(2000);
       try {
         await Promise.race([page.waitForSelector(blocks.lastMessage), page.waitForSelector(blocks.invalidMessageType)]);
         isLastMessageElFound = Boolean(await page.$(blocks.lastMessage));
