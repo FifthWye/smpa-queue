@@ -67,6 +67,7 @@ const getListOfReceivers = async (page, { blocks, inputs }, jobId) => {
   if (appNotNowBtn[0]) await appNotNowBtn[0].click();
 
   let receivers = [];
+  await page.waitForSelector(blocks.chatListVisibleArea);
   const scrollRange = await page.$eval(blocks.chatListVisibleArea, (el) => el.scrollHeight);
   const distance = roundHundred(scrollRange);
   let totalScrollHeight = 0;
@@ -380,7 +381,7 @@ const run = async (job) => {
 
     await job.update({ ...job.data, loggedIn: true });
     const receivers = await getListOfReceivers(page, SELECTORS, job.id);
-    if(receivers.length <= 300) throw new Error("Didn't get all receivers");
+    if (receivers.length <= 300) throw new Error("Didn't get all receivers");
     await job.update({ ...job.data, receiversAmount: receivers.length });
     const { text } = job.data;
     const stats = await resendMessages(page, receivers, text, SELECTORS, job);
