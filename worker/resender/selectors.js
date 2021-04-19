@@ -31,6 +31,7 @@ const SELECTORS = {
     text: {
       username: 'div[aria-labelledby] div[id]:first-child',
       notAllowedToSendMessages: `//span[contains(text(), " can't receive your message. They don't allow new message requests from everyone.")]`,
+      accountHasBeenBlocked: `//h2[contains(text(), "Your Account Has Been Temporarily Locked")]`,
     },
   };
 

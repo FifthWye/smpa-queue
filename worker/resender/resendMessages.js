@@ -55,7 +55,7 @@ const getReceivers = async (page, { text, blocks }, currentList) =>
     currentList
   );
 
-const getListOfReceivers = async (page, { blocks, inputs }, jobId) => {
+const getListOfReceivers = async (page, { blocks, inputs, text }, jobId) => {
   await page.goto('https://www.instagram.com/direct/inbox/', {
     waitUntil: 'networkidle0',
     timeout: 60000,
@@ -67,7 +67,6 @@ const getListOfReceivers = async (page, { blocks, inputs }, jobId) => {
   if (appNotNowBtn[0]) await appNotNowBtn[0].click();
 
   let receivers = [];
-  await page.waitForSelector(blocks.chatListVisibleArea);
   const scrollRange = await page.$eval(blocks.chatListVisibleArea, (el) => el.scrollHeight);
   const distance = roundHundred(scrollRange);
   let totalScrollHeight = 0;
@@ -355,7 +354,7 @@ const resendMessages = async (page, receivers, text, { blocks }, job) => {
 
 const run = async (job) => {
   const browser = await puppeteer.launch({
-    headless: true,
+    headless: false,
     defaultViewport: null,
     args: [
       '--proxy-server=zproxy.lum-superproxy.io:22225',
@@ -380,12 +379,17 @@ const run = async (job) => {
     await page.setCookie(...cookies);
 
     await job.update({ ...job.data, loggedIn: true });
+
+    const appNotNowBtn = await page.$x(SELECTORS.text.accountHasBeenBlocked);
+
+    if (appNotNowBtn[0]) await job.update({ ...job.data, accountHasBeenBlocked: true });
+
     const receivers = await getListOfReceivers(page, SELECTORS, job.id);
     if (receivers.length <= 300) throw new Error("Didn't get all receivers");
     await job.update({ ...job.data, receiversAmount: receivers.length });
     const { text } = job.data;
     const stats = await resendMessages(page, receivers, text, SELECTORS, job);
-    await job.update({ ...job.data, stats: { ...stats, receivers: receivers.length } });
+    await job.update({ ...job.data, stats: { receivers: receivers.length } });
 
     return stats;
   } catch (error) {
