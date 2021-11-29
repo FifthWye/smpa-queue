@@ -1,0 +1,11 @@
+{
+    "PORT": 3000,
+    "MONGO_URI": "mongodb+srv://smpa_admin:62956438@cluster0.3dh2v.mongodb.net/smpa?retryWrites=true&w=majority",
+    "REDIS_URI": "redis://resenderRoot:@",
+    "LUM_ZONE": "lum-customer-hl_a74ada2a-zone-static-country-ua",
+    "LUM_PASSWORD": "qkwnutn85m5j",
+    "REDIS_HOST": "redis-10870.c14.us-east-1-3.ec2.cloud.redislabs.com",
+    "REDIS_PORT": "10870",
+    "REDIS_PASSWORD": "m09QJWYRHbBficCrlffzmCzAfnKF0963",
+    "REDIS_USERNAME": "root"
+}

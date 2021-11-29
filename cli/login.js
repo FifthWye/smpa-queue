@@ -67,8 +67,8 @@ const run = async (credentials) => {
 };
 
 const credentials = {
-  username: 'onemoredeepbreath',
-  password: 'h3ySUPERhitHAJIKaA',
+  username: 'ffenin',
+  password: '62956438',
 };
 
 run(credentials);
