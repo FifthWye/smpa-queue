@@ -1,14 +1,20 @@
-const resenderQueue = require('./resender');
+const autoReplyQueue = require('./autoReply');
 
 const addJob = async (queue, data) => {
   const {
     credentials: { username },
+    replies,
   } = data;
 
-  await queue.add(`${new Date().toLocaleString()} | ${username}`, data, { attempts: 2, removeOnComplete: 100, timeout: 14400000 });
+  if (replies.length !== 0)
+    await queue.add(`${new Date().toLocaleString()} | ${username}`, data, {
+      attempts: 1,
+      removeOnComplete: 360,
+      timeout: 12000,
+    });
 };
 
 module.exports = {
-  resenderQueue,
+  queue: autoReplyQueue,
   addJob,
 };

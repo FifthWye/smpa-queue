@@ -9,14 +9,14 @@ const login = async (page, { username, password }, { inputs, blocks }, jobId) =>
     inputs: {
       username: 'input[name="username"]',
       password: 'input[name="password"]',
-      login: "//button[contains(text(), 'Log In')]",
+      login: "//div[contains(text(), 'Log In')]",
       submit: '[type="submit"]',
       ...inputs,
     },
     blocks,
   };
 
-  await page.goto('https://www.instagram.com', {
+  await page.goto('https://www.instagram.com/accounts/login/', {
     waitUntil: 'networkidle0',
     timeout: 60000,
   });
@@ -37,9 +37,15 @@ const login = async (page, { username, password }, { inputs, blocks }, jobId) =>
         (await page.$eval(inputs.languageSelect, (el) => el.getAttribute('aria-label'))) !== 'Switch Display Language';
     }
 
+    const modalBtn = await page.$x(S.inputs.acceptCookies);
+
+    if (modalBtn) await modalBtn[0].click();
+
     const loginBtn = await page.$x(S.inputs.login);
 
     if (loginBtn[0]) await loginBtn[0].click();
+
+    await page.waitForXPath(S.inputs.acceptCookies, {hidden: true});
 
     await page.waitForSelector(S.inputs.username);
     await page.type(S.inputs.username, username);
@@ -50,7 +56,7 @@ const login = async (page, { username, password }, { inputs, blocks }, jobId) =>
       jobId,
       ' | ',
       error,
-      "Didn't find inputs to log in trying again with removeing modal if exists"
+      "\n Didn't find inputs to log in trying again with removeing modal if exists"
     );
     let $acceptBtn = await page.$(S.inputs.firstModalBtn);
 
@@ -78,12 +84,7 @@ const login = async (page, { username, password }, { inputs, blocks }, jobId) =>
   const cookies = userAvatarEl ? await page.cookies() : null;
 
   if (cookies !== null) {
-    const conn = await mongoose.connect(process.env.MONGO_URI, {
-      useUnifiedTopology: true,
-      useNewUrlParser: true,
-      useFindAndModify: false,
-      useCreateIndex: true,
-    });
+    const conn = await mongoose.connect(process.env.MONGO_URI);
 
     const userRecord = await BotModel.findOne({
       credentials: { username, password },

@@ -1,45 +1,28 @@
 const mongoose = require('mongoose');
 
-const botSchema = new mongoose.Schema({
-  owner: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
-  },
-  dateCreated: {
-    type: Date,
-    default: Date.now,
-  },
-  credentials: {
-    username: {
-      type: String,
-      required: true,
-    },
-    password: {
-      type: String,
-      required: true,
-    },
-  },
-  config: {
-    resenderText: [{ type: String, trim: true }],
-  },
-  services: [
-    {
+const BotSchema = new mongoose.Schema(
+  {
+    userCreated: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Service',
+      ref: "User",
+      required: true,
     },
-  ],
-  sessionCookies: { type: String, default: '', trim: true },
-  active: { type: Boolean, required: true, default: true },
-  stats: {
-    receivers: { type: Number },
-    resent: { type: Array},
-    resentDialoguesAmount: { type: Number},
-    failed: { type: Array},
-    invalidDialoguesAmount: { type: Number},
+    instagramUrl: String,
+    isActive: {
+      type: Boolean,
+      default: false,
+    },
+    replies: [{ type: mongoose.Schema.Types.ObjectId, ref: "Reply" }],
+    userModerators: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    sessionCookies: { type: String, default: "", trim: true },
+    defaultReply: {
+      type: String,
+      default: "",
+    },
   },
-});
+  { timestamps: true }
+);
 
-const BotModel = mongoose.model('Bot', botSchema);
+const BotModel = mongoose.model('Bot', BotSchema);
 
 module.exports = BotModel;

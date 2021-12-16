@@ -1,31 +1,33 @@
 const Arena = require('bull-arena');
-const nConf = require('nconf');
 const { Queue } = require('bullmq');
-const path = require('path');
 
-nConf.argv().env().file({ file: path.join(__dirname, 'envs.json') });
+const dotenv = require('dotenv');
 
-console.log(path.join(__dirname, 'envs.json'));
+dotenv.config({ path: './config/config.env' });
 
 const redis = {
-  host: nConf.get('REDIS_HOST'),
-  port: Number(nConf.get('REDIS_PORT')),
-  password: nConf.get('REDIS_PASSWORD'),
+  host: process.env.REDIS_HOST,
+  port: Number(process.env.REDIS_PORT),
+  password: process.env.REDIS_PASSWORD,
 };
 
-Arena(
-  {
-    BullMQ: Queue,
-    queues: [
-      {
-        type: 'bullmq',
-        name: 'instabot-queue',
-        hostId: 'instabot-queue',
-        redis
-      }
-    ]
-  },
-  {
-    basePath: '/'
-  }
-);
+try {
+  Arena(
+    {
+      BullMQ: Queue,
+      queues: [
+        {
+          type: 'bullmq',
+          name: 'autoReply',
+          hostId: 'autoReply',
+          redis,
+        },
+      ],
+    },
+    {
+      basePath: '/',
+    }
+  );
+} catch (error) {
+  console.log(error);
+}
