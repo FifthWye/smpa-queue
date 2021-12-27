@@ -45,7 +45,7 @@ const login = async (page, { username, password }, { inputs, blocks }, jobId) =>
 
     if (loginBtn[0]) await loginBtn[0].click();
 
-    await page.waitForXPath(S.inputs.acceptCookies, {hidden: true});
+    await page.waitForXPath(S.inputs.acceptCookies, { hidden: true });
 
     await page.waitForSelector(S.inputs.username);
     await page.type(S.inputs.username, username);
@@ -82,6 +82,7 @@ const login = async (page, { username, password }, { inputs, blocks }, jobId) =>
   });
   const userAvatarEl = await page.$(S.blocks.userAvatar);
   const cookies = userAvatarEl ? await page.cookies() : null;
+  const profilePicture = await page.$eval(S.blocks.userProfilePicture, (el) => el.src);
 
   if (cookies !== null) {
     const conn = await mongoose.connect(process.env.MONGO_URI);
@@ -89,6 +90,8 @@ const login = async (page, { username, password }, { inputs, blocks }, jobId) =>
     const userRecord = await BotModel.findOne({
       credentials: { username, password },
     });
+    userRecord.profilePicture = profilePicture;
+    userRecord.isValid = true;
     userRecord.sessionCookies = JSON.stringify(cookies);
     await userRecord.save();
   }

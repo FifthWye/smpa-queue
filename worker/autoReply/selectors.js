@@ -27,6 +27,7 @@ const SELECTORS = {
         '[style="height: 100%; width: 100%;"] > div > div > div:last-child > [role="listbox"][tabindex="0"]',
       lastChat: '[style="height: 100%;"] [style="height: 100%; overflow: hidden auto;"] > div> div:last-child',
       userAvatar: '[style="width: 24px; height: 24px;"]',
+      userProfilePicture: 'img[data-testid="user-avatar"]',
       useMobApp: '[role="presentation"]',
       lastMessageFromReceiver: '[style="height: 100%; width: 100%;"] > div > div:last-child > div a[href^="/"]',
       messageWithAvatar: '[style="height: 100%; width: 100%;"] > div > div > div a[href^="/"]',

@@ -7,7 +7,13 @@ const BotSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    profilePicture: String,
     instagramUrl: String,
+    isValid: {
+      type: Boolean,
+      default: false,
+      required: true,
+    },
     isActive: {
       type: Boolean,
       default: false,
