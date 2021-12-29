@@ -84,15 +84,19 @@ const login = async (page, { username, password }, { inputs, blocks }, jobId) =>
   const cookies = userAvatarEl ? await page.cookies() : null;
   const profilePicture = await page.$eval(S.blocks.userProfilePicture, (el) => el.src);
 
-  if (cookies !== null) {
-    const conn = await mongoose.connect(process.env.MONGO_URI);
+  const conn = await mongoose.connect(process.env.MONGO_URI);
 
-    const userRecord = await BotModel.findOne({
-      credentials: { username, password },
-    });
+  const userRecord = await BotModel.findOne({
+    credentials: { username, password },
+  });
+  if (cookies !== null) {
     userRecord.profilePicture = profilePicture;
     userRecord.isValid = true;
     userRecord.sessionCookies = JSON.stringify(cookies);
+    await userRecord.save();
+  } else {
+    userRecord.isValid = false;
+    userRecord.isActive = false;
     await userRecord.save();
   }
 
