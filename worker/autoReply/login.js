@@ -86,18 +86,18 @@ const login = async (page, { username, password }, { inputs, blocks }, jobId) =>
 
   const conn = await mongoose.connect(process.env.MONGO_URI);
 
-  const userRecord = await BotModel.findOne({
+  const botRecord = await BotModel.findOne({
     credentials: { username, password },
   });
   if (cookies !== null) {
-    userRecord.profilePicture = profilePicture;
-    userRecord.isValid = true;
-    userRecord.sessionCookies = JSON.stringify(cookies);
-    await userRecord.save();
+    botRecord.profilePicture = profilePicture;
+    botRecord.isValid = true;
+    botRecord.sessionCookies = JSON.stringify(cookies);
+    await botRecord.save();
   } else {
-    userRecord.isValid = false;
-    userRecord.isActive = false;
-    await userRecord.save();
+    botRecord.isValid = false;
+    botRecord.isActive = false;
+    await botRecord.save();
   }
 
   return cookies;
