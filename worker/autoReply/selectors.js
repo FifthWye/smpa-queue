@@ -11,10 +11,11 @@ const SELECTORS = {
       appNotNow: "//button[contains(text(), 'Not Now')]",
       backToDirects: 'a[tabindex="0"]',
       currentChatUserAvatar: '[style="width: 100%;"] > div > button',
-      acceptCookies: "//button[contains(text(), 'Accept All')]",
+      acceptCookies: "//button[contains(text(), 'Allow essential and optional cookies')]",
       getMobAppBtn: "//div[contains(text(), 'Get the Instagram app')]",
       goToLoginPage: "//div[contains(text(), 'Log In')]",
       firstChat: 'a[href^="/direct/t/"]:first-child',
+      newMessageBtn: '[aria-label="New message"]'
     },
     blocks: {
       direct: '[style="height: 100%;"] a[href^="/direct/"]',
@@ -27,7 +28,7 @@ const SELECTORS = {
         '[style="height: 100%; width: 100%;"] > div > div > div:last-child > [role="listbox"][tabindex="0"]',
       lastChat: '[style="height: 100%;"] [style="height: 100%; overflow: hidden auto;"] > div> div:last-child',
       userAvatar: '[style="width: 24px; height: 24px;"]',
-      userProfilePicture: 'img[data-testid="user-avatar"]',
+      userProfilePicture: '[style="width: 24px; height: 24px;"] img',
       useMobApp: '[role="presentation"]',
       lastMessageFromReceiver: '[style="height: 100%; width: 100%;"] > div > div:last-child > div a[href^="/"]',
       messageWithAvatar: '[style="height: 100%; width: 100%;"] > div > div > div a[href^="/"]',

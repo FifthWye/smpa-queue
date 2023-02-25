@@ -46,14 +46,14 @@ const run = async (credentials) => {
   const browser = await puppeteer.launch({
     headless: false,
     defaultViewport: null,
-    args: ['--disable-notifications', '--proxy-server=zproxy.lum-superproxy.io:22225'],
+    args: ['--disable-notifications', ],
   });
   try {
     const page = await browser.newPage();
-    await page.authenticate({
-      username: process.env.LUM_ZONE,
-      password: process.env.LUM_PASSWORD,
-    });
+    // await page.authenticate({
+    //   username: process.env.LUM_ZONE,
+    //   password: process.env.LUM_PASSWORD,
+    // });
     await login(page, credentials, SELECTORS);
 
     await page.waitForSelector('[role="link"][tabindex="0"]', { timeout: 60000 });
@@ -67,8 +67,8 @@ const run = async (credentials) => {
 };
 
 const credentials = {
-  username: 'ffenin',
-  password: '62956438',
+  username: 'yarsheva',
+  password: '62956438Nm',
 };
 
 run(credentials);

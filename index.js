@@ -28,7 +28,10 @@ worker.on('failed', (job, err) => console.log(`Failed job ${job.id} with ${err}`
 
 console.log('Queue started at ', new Date().toLocaleString());
 
-cron.schedule('*/2 * * * *', () => {
-  console.log('Running producer');
+// cron.schedule('*/2 * * * *', () => {
+//   console.log('Running producer');
+//   producer();
+// });
+
+console.log('Running producer');
   producer();
-});

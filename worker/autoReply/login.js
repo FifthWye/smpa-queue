@@ -69,17 +69,13 @@ const login = async (page, { username, password }, { inputs, blocks }, jobId) =>
   await page.click(S.inputs.submit);
   console.log('Job id: ', jobId, ' | ', 'Finaly logged in, getting rid of unneeded modal windows...');
   await page.waitForNavigation({
-    waitUntil: 'networkidle0',
+    waitUntil: 'networkidle2',
     timeout: 60000,
   });
   $acceptBtn = await page.$(S.inputs.dontSaveBrowserBtn);
 
   if ($acceptBtn) await $acceptBtn.click();
 
-  await page.waitForNavigation({
-    waitUntil: 'networkidle0',
-    timeout: 60000,
-  });
   const userAvatarEl = await page.$(S.blocks.userAvatar);
   const cookies = userAvatarEl ? await page.cookies() : null;
   const profilePicture = await page.$eval(S.blocks.userProfilePicture, (el) => el.src);
