@@ -36,8 +36,10 @@ const getUnreadMessages = async (page, { blocks }) => {
   const lastMessages = await page.evaluate((selector) => {
     const elements = document.querySelectorAll(selector);
     const messagesContent = Array.from(elements).map((el) => {
+      console.log(el.textContent.trim())
       if (!el.querySelector('[role="listbox"]')) return null;
-      if (!el.querySelector('[style="width: 24px; height: 24px;"] img')) return null; //message sent by bot shouldn't be counted
+      if(el.querySelector('._acd2'))return null;
+      
       return el.textContent.trim();
     });
 
@@ -59,7 +61,7 @@ const findMatchAndSendReply = async (page, { blocks, inputs }, job) => {
       for (let { keywords, answer } of replies) {
         const IsKeywordMatch = keywords.find((text) => {
           const similarity = stringSimilarity.compareTwoStrings(formatText(text), formatText(messageText));
-          const isHigherThanSeventy = Math.round(similarity.toFixed(2) * 100) >= 70;
+          const isHigherThanSeventy = Math.round(similarity.toFixed(2) * 100) >= 50;
 
           return isHigherThanSeventy;
         });
@@ -73,7 +75,7 @@ const findMatchAndSendReply = async (page, { blocks, inputs }, job) => {
     const { defaultReply } = job.data;
 
     const undefinedMessageText =
-      defaultReply !== '' ? defaultReply : "Sorry, I didn't understand your message. Please wait until account moderator will log in to account.";
+      defaultReply.trim() !== '' ? defaultReply : "Sorry, I didn't understand your message. Please wait until account moderator will log in to account.";
 
     if (unreadMessages.length !== 0 && answers.length === 0) await sendMessage(page, SELECTORS, undefinedMessageText);
     for (const reply of uniqueAnswers) {
